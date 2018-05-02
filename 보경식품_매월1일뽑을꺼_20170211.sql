@@ -146,6 +146,7 @@ order by max(stat) desc
 select * from DM_List_Sent where update_DT >'2015-10-26' and stat = -1 
 
 
+
 --중간에 쉬고 왔다.. 어디까지 처리 되었나
 select  * from dm_list_sent  where update_DT > '2015-10-19' and stat = -1 order by name   
 select  * from dm_list_sent  where wDate > '2015-03-15' and wDate < '2015-07-28'  and stat = -1 and  update_dt > '2015-08-24'  and stat = -1 order by update_DT desc 
@@ -502,24 +503,26 @@ group by localName
 
 -- 2018.05.01 여기 할차례... 강원도 중에서 한길한테 물어보고...지울것 지우고 진행  있을 것이다.
 
+drop table DM_List_Temp_20180502
+select * into DM_List_Temp_20180502 from DM_List_Temp 
 
-select * into DM_List_Temp_20170211 from DM_List_Temp -- 7427개 백업
+-- 7427개 백업
+
+
 
 --새로받은 주소를 mart_날짜 테이블로 복사
-
-drop table mart_20170615
-
+drop table mart_20180502
 --새로운 테이블에 데이타를 복사해 놓자 --
 select idx,name, tel, address, roadAddress, cateName1, cateName2, wDate
-	into mart_20170615
-from DM_List_Temp 	
+	into mart_20180502 
+from DM_List_Temp 	where localName not like '%강원도%'
 	order by address DESC	
 	
 	
 --
 
 -- 하나로는 500개를 맞춘다.
-select * from mart_20160903 where name like '%하나로%' order by address  -- (select 500-209  = 291개 보충)
+select * from mart_20180502 where name like '%하나로%' order by address  -- (select 500-209  = 291개 보충)
 select 500 - 209
 
 --1. 하나로 먼저 넣고 -- 2,000개가 안될경우
@@ -541,15 +544,15 @@ insert into chicken_20161018 ( name, tel, [address], roadAddress, wDate)
 		
 
 --현재 mart_날짜 테이블 정보
-select * from mart_20170615 order by wDate
+select * from mart_20180502 order by wDate
 
 -- 혹시나 중복 데이타가 있는지 확인 없어야 함.
-SELECT min(idx) as idx , address, count(*) AS cnt FROM mart_20170615  with(nolock) 
+SELECT min(idx) as idx , address, count(*) AS cnt FROM mart_20180502  with(nolock) 
 	GROUP BY address HAVING count(*) > 1   --  주소 기준 중복 데이터 0건
 
 
 --새로운 주소가 2천개가 안되어 보낸 주소록에서 가져 왔다면...
-select count(*) from  DM_List_Sent a join mart_20170211 b on a.address = b.address -- 기준 주소록 Loop 갯수 
+select count(*) from  DM_List_Sent a join mart_20180502 b on a.address = b.address -- 기준 주소록 Loop 갯수 
 
 
 -- 모자라서 돌려치기 한 주소록은 보낸 테이블의 update_DT 를 갱신  mart_20160322  테이블명 확인 (중요)
@@ -567,35 +570,35 @@ select @@TRANCOUNT
 
 
 -- 데이타를 다시 보자.
-select count(*) from mart_20170615 -- 2,000개
-select *  from mart_20170615  order by wDate -- 옛날주소, 도로명 주소가 서울, 경북, 경남과 같이 두 자리로 바꿔야 한다.
-select * from mart_20170615  where name like '%하나로%' -- 하나로는 우리의 밥줄
+select count(*) from mart_20180502 -- 2,000개
+select *  from mart_20180502  order by wDate -- 옛날주소, 도로명 주소가 서울, 경북, 경남과 같이 두 자리로 바꿔야 한다.
+select * from mart_20180502  where name like '%하나로%' -- 하나로는 우리의 밥줄
 
 
 --mart_날짜 테이블
-select * from mart_20170615 a join dm_list_sent b on a.address = b.address where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
-select * from mart_20170615 a join dm_list_sent b on a.roadAddress = b.address where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
-select * from mart_20170615 a join dm_list_sent b on a.address = b.roadAddress where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
+select * from mart_20180502 a join dm_list_sent b on a.address = b.address where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
+select * from mart_20180502 a join dm_list_sent b on a.roadAddress = b.address where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
+select * from mart_20180502 a join dm_list_sent b on a.address = b.roadAddress where a.address <> '' and a.cateName1 is not null  -- 신규 들어온 아이의 주소가 기존 주소와 같다면 뭔가 이상.
 --보낸 주소록에 있고 주소가 같은 아이들 지우자. (날짜 테이블이 delete 와 select 2개 임)
 begin tran
-	delete from mart_20170615
-	where idx in (select a.idx from mart_20170615 a join dm_list_sent b on a.address = b.address where a.address <> '' and a.cateName1 is not null)
+	delete from mart_20180502
+	where idx in (select a.idx from mart_20180502 a join dm_list_sent b on a.address = b.address where a.address <> '' and a.cateName1 is not null)
 commit tran
 
 begin tran
-	delete from mart_20170615
-	where idx in (select a.idx from mart_20170615 a join dm_list_sent b on a.roadAddress = b.address where a.address <> '' and a.cateName1 is not null)
+	delete from mart_20180502
+	where idx in (select a.idx from mart_20180502 a join dm_list_sent b on a.roadAddress = b.address where a.address <> '' and a.cateName1 is not null)
 commit tran
 
 select @@TRANCOUNT
 
 
-select * ,b.update_DT from mart_20170211 a join dm_list_sent b on a.tel = b.tel where a.tel <> ''  and a.cateName1 is not null -- 신규 들어온 아이의 전번이 기존 전번과 같다면 뭔가 이상.
+select * ,b.update_DT from mart_20180502 a join dm_list_sent b on a.tel = b.tel where a.tel <> ''  and a.cateName1 is not null -- 신규 들어온 아이의 전번이 기존 전번과 같다면 뭔가 이상.
 
 --보낸 주소록에 있고 전화번호가 같은 아이들 지우자 (참조 테이블이 2개임)
 begin tran
-	delete from mart_20170615
-	where idx in (select a.idx from mart_20170615 a join dm_list_sent b on a.tel = b.tel where a.tel <> '' and a.cateName1 is not null)
+	delete from mart_20180502
+	where idx in (select a.idx from mart_20180502 a join dm_list_sent b on a.tel = b.tel where a.tel <> '' and a.cateName1 is not null)
 commit tran
 
 select @@TRANCOUNT
@@ -604,10 +607,10 @@ select @@TRANCOUNT
 
 
 select * from DM_List_Temp_Working
-select * from mart_20170211  
+select * from mart_20180502  
 drop table DM_List_Temp_Working -- 데이터를 지우고... 현재 추출된 놈들만 복사 하자(데이터 보호와 우편번호 추출을 위해)
 
-select * into DM_List_Temp_Working from mart_20170615  -- 데이터 insert
+select * into DM_List_Temp_Working from mart_20180502  -- 데이터 insert
 
 
 
@@ -839,7 +842,7 @@ or address like '강원 양구군%' or address like '강원 화천군%'  --or address like
 
 --추출된 데이터는 DM 발송 리스트에 오늘 날짜로 해서 넣어 준다.(기존 보낸건 날짜 업데이트 했으니 완전 쌔거만 넣어 주면 된다.)
 insert dm_List_sent(name, tel, zipCode, address,roadAddress, stat, wDate, platform, update_dt)
-select name, tel, zipCode, address, roadAddress, 0, getdate(), 'mart_20170814', getdate() from tempZip_Mart  where  cateName1 is not null
+select name, tel, zipCode, address, roadAddress, 0, getdate(), 'mart_20180502', getdate() from tempZip_Mart  where  cateName1 is not null
 
 
 --주소가 일반 도로 시작하지 않으면 삭제
@@ -852,15 +855,15 @@ and address not like '부산%' and address not like '울산%'  and address not like 
  tempZip_Mart 테이블 이름을 검색 단어와 날짜를 붙여 이름을 바꿔줘라
 
 select count(*) from [dbo].[tempZip_Mart_날짜_Naver]  -- 이건 샘플.. 아래를 지워라
-select count(*) from tempZip_Mart_20170814_Naver
+select count(*) from tempZip_Mart_20180502_Naver
 
 --아래 쿼리로 데이터 export 옵션 First row has column names 체크, 확장자는 쓰지말고 파일명만 입력
 
-SELECT  name + ' 사장님' as name, tel, zipcode, address , cateName1 from tempZip_Mart_20170814_Naver 
+SELECT  name + ' 사장님' as name, tel, zipcode, address , cateName1 from tempZip_Mart_20180502_Naver 
 order by  address
 
 
-select left(address,2) , count(*) from tempZip_Mart_20170814_Naver
+select left(address,2) , count(*) from tempZip_Mart_20180502_Naver
 where cateName1 is not null
 group by left(address,2)
 order by count(*) desc
